@@ -1,5 +1,4 @@
 from __future__ import division, print_function
-import pandas as pd
 import numpy as np
 import itertools
 
@@ -40,9 +39,10 @@ class Apriori():
         support = count / len(self.transactions)
         return support
 
-    # Prunes the candidates that are not frequent
-    # => returns list with only frequent itemsets
+
     def _get_frequent_itemsets(self, candidates):
+        """ Prunes the candidates that are not frequent => returns list with 
+        only frequent itemsets """
         frequent = []
         # Find frequent items
         for itemset in candidates:
@@ -51,10 +51,10 @@ class Apriori():
                 frequent.append(itemset)
         return frequent
 
-    # True or false depending on the candidate has any
-    # subset with size k - 1 that is not in the frequent
-    # itemset
+
     def _has_infrequent_itemsets(self, candidate):
+        """ True or false depending on the candidate has any
+        subset with size k - 1 that is not in the frequent itemset """
         k = len(candidate)
         # Find all combinations of size k-1 in candidate
         # E.g [1,2,3] => [[1,2],[1,3],[2,3]]
@@ -66,10 +66,11 @@ class Apriori():
                 return True
         return False
 
-    # Joins the elements in the frequent itemset and prunes
-    # resulting sets if they contain subsets that have been determined
-    # to be infrequent.
+
     def _generate_candidates(self, freq_itemset):
+        """ Joins the elements in the frequent itemset and prunes
+        resulting sets if they contain subsets that have been determined
+        to be infrequent. """
         candidates = []
         for itemset1 in freq_itemset:
             for itemset2 in freq_itemset:
@@ -97,9 +98,10 @@ class Apriori():
                         candidates.append(candidate)
         return candidates
 
-    # True or false depending on each item in the itemset is
-    # in the transaction
+
     def _transaction_contains_items(self, transaction, items):
+        """ True or false depending on each item in the itemset is
+        in the transaction """
         # If items is in fact only one item
         if isinstance(items, int):
             return items in transaction
@@ -110,8 +112,8 @@ class Apriori():
                 return False
         return True
 
-    # Returns the set of frequent itemsets in the list of transactions
     def find_frequent_itemsets(self, transactions):
+        """ Returns the set of frequent itemsets in the list of transactions """
         self.transactions = transactions
         # Get all unique items in the transactions
         unique_items = set(item for transaction in self.transactions for item in transaction)
@@ -135,9 +137,10 @@ class Apriori():
             itemset for sublist in self.freq_itemsets for itemset in sublist]
         return frequent_itemsets
 
-    # Recursive function which returns the rules where confidence >= min_confidence
-    # Starts with large itemset and recursively explores rules for subsets
+
     def _rules_from_itemset(self, initial_itemset, itemset):
+        """ Recursive function which returns the rules where confidence >= min_confidence
+        Starts with large itemset and recursively explores rules for subsets """
         rules = []
         k = len(itemset)
         # Get all combinations of sub-itemsets of size k - 1 from itemset
@@ -185,34 +188,3 @@ class Apriori():
         # Remove empty values
         return rules
 
-
-def main():
-    # Demo transaction set
-    # Example 2: https://en.wikipedia.org/wiki/Apriori_algorithm
-    transactions = np.array([[1, 2, 3, 4], [1, 2, 4], [1, 2], [2, 3, 4], [2, 3], [3, 4], [2, 4]])
-    print ("+-------------+")
-    print ("|   Apriori   |")
-    print ("+-------------+")
-    min_sup = 0.25
-    min_conf = 0.8
-    print ("Minimum Support: %.2f" % (min_sup))
-    print ("Minimum Confidence: %s" % (min_conf))
-    print ("Transactions:")
-    for transaction in transactions:
-        print ("\t%s" % transaction)
-
-    apriori = Apriori(min_sup=min_sup, min_conf=min_conf)
-
-    # Get and print the frequent itemsets
-    frequent_itemsets = apriori.find_frequent_itemsets(transactions)
-    print ("Frequent Itemsets:\n\t%s" % frequent_itemsets)
-
-    # Get and print the rules
-    rules = apriori.generate_rules(transactions)
-    print ("Rules:")
-    for rule in rules:
-        print ("\t%s -> %s (support: %.2f, confidence: %s)" % (rule.antecedent, rule.concequent, rule.support, rule.confidence,))
-
-
-if __name__ == "__main__":
-    main()

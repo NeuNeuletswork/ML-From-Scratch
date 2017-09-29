@@ -1,15 +1,10 @@
 from __future__ import division, print_function
-import sys
-import os
 import math
-import random
 from sklearn import datasets
 import numpy as np
 
-# Import helper functions
-from mlfromscratch.utils.data_manipulation import normalize
-from mlfromscratch.utils.data_operation import euclidean_distance, calculate_covariance_matrix
-from mlfromscratch.unsupervised_learning import PCA
+from mlfromscratch.utils import normalize, euclidean_distance, calculate_covariance_matrix
+from mlfromscratch.utils import Plot
 
 
 class GaussianMixtureModel():
@@ -35,8 +30,8 @@ class GaussianMixtureModel():
         self.sample_assignments = None
         self.responsibility = None
 
-    # Initialize gaussian randomly
     def _init_random_gaussians(self, X):
+        """ Initialize gaussian randomly """
         n_samples = np.shape(X)[0]
         self.priors = (1 / self.k) * np.ones(self.k)
         for i in range(self.k):
@@ -45,8 +40,8 @@ class GaussianMixtureModel():
             params["cov"] = calculate_covariance_matrix(X)
             self.parameters.append(params)
 
-    # Likelihood
     def multivariate_gaussian(self, X, params):
+        """ Likelihood """
         n_features = np.shape(X)[1]
         mean = params["mean"]
         covar = params["cov"]
@@ -61,8 +56,8 @@ class GaussianMixtureModel():
 
         return likelihoods
 
-    # Calculate the likelihood over all samples
     def _get_likelihoods(self, X):
+        """ Calculate the likelihood over all samples """
         n_samples = np.shape(X)[0]
         likelihoods = np.zeros((n_samples, self.k))
         for i in range(self.k):
@@ -71,8 +66,8 @@ class GaussianMixtureModel():
                 X, self.parameters[i])
         return likelihoods
 
-    # Calculate the responsibility
     def _expectation(self, X):
+        """ Calculate the responsibility """
         # Calculate probabilities of X belonging to the different clusters
         weighted_likelihoods = self._get_likelihoods(X) * self.priors
         sum_likelihoods = np.expand_dims(
@@ -84,8 +79,8 @@ class GaussianMixtureModel():
         # Save value for convergence check
         self.responsibilities.append(np.max(self.responsibility, axis=1))
 
-    # Update the parameters and priors
     def _maximization(self, X):
+        """ Update the parameters and priors """
         # Iterate through clusters and recalculate mean and covariance
         for i in range(self.k):
             resp = np.expand_dims(self.responsibility[:, i], axis=1)
@@ -98,8 +93,8 @@ class GaussianMixtureModel():
         n_samples = np.shape(X)[0]
         self.priors = self.responsibility.sum(axis=0) / n_samples
 
-    # Covergence if || likehood - last_likelihood || < tolerance
     def _converged(self, X):
+        """ Covergence if || likehood - last_likelihood || < tolerance """
         if len(self.responsibilities) < 2:
             return False
         diff = np.linalg.norm(
@@ -107,8 +102,8 @@ class GaussianMixtureModel():
         # print ("Likelihood update: %s (tol: %s)" % (diff, self.tolerance))
         return diff <= self.tolerance
 
-    # Run GMM and return the cluster indices
     def predict(self, X):
+        """ Run GMM and return the cluster indices """
         # Initialize the gaussians randomly
         self._init_random_gaussians(X)
 
@@ -124,19 +119,3 @@ class GaussianMixtureModel():
         # Make new assignments and return them
         self._expectation(X)
         return self.sample_assignments
-
-def main():
-    # Load the dataset
-    X, y = datasets.make_blobs()
-
-    # Cluster the data
-    clf = GaussianMixtureModel(k=3)
-    y_pred = clf.predict(X)
-
-    pca = PCA()
-    pca.plot_in_2d(X, y_pred, title="GMM Clustering")
-    pca.plot_in_2d(X, y, title="Actual Clustering")
-
-
-if __name__ == "__main__":
-    main()

@@ -1,15 +1,7 @@
-import sys
-import os
-import math
-import random
-from sklearn import datasets
+from __future__ import print_function, division
 import numpy as np
-
-# Import helper functions
-from mlfromscratch.utils.data_manipulation import normalize
-from mlfromscratch.utils.data_operation import euclidean_distance
+from mlfromscratch.utils import normalize, euclidean_distance, Plot
 from mlfromscratch.unsupervised_learning import *
-
 
 class KMeans():
     """A simple clustering method that forms k clusters by iteratively reassigning
@@ -29,8 +21,8 @@ class KMeans():
         self.k = k
         self.max_iterations = max_iterations
 
-    # Initialize the centroids as random samples
     def _init_random_centroids(self, X):
+        """ Initialize the centroids as random samples """
         n_samples, n_features = np.shape(X)
         centroids = np.zeros((self.k, n_features))
         for i in range(self.k):
@@ -38,19 +30,19 @@ class KMeans():
             centroids[i] = centroid
         return centroids
 
-    # Return the index of the closest centroid to the sample
     def _closest_centroid(self, sample, centroids):
-        closest_i = None
-        closest_distance = float("inf")
+        """ Return the index of the closest centroid to the sample """
+        closest_i = 0
+        closest_dist = float('inf')
         for i, centroid in enumerate(centroids):
             distance = euclidean_distance(sample, centroid)
-            if distance < closest_distance:
+            if distance < closest_dist:
                 closest_i = i
-                closest_distance = distance
+                closest_dist = distance
         return closest_i
 
-    # Assign the samples to the closest centroids to create clusters
     def _create_clusters(self, centroids, X):
+        """ Assign the samples to the closest centroids to create clusters """
         n_samples = np.shape(X)[0]
         clusters = [[] for _ in range(self.k)]
         for sample_i, sample in enumerate(X):
@@ -58,9 +50,8 @@ class KMeans():
             clusters[centroid_i].append(sample_i)
         return clusters
 
-    # Calculate new centroids as the means of the samples
-    # in each cluster
     def _calculate_centroids(self, clusters, X):
+        """ Calculate new centroids as the means of the samples in each cluster  """
         n_features = np.shape(X)[1]
         centroids = np.zeros((self.k, n_features))
         for i, cluster in enumerate(clusters):
@@ -68,8 +59,8 @@ class KMeans():
             centroids[i] = centroid
         return centroids
 
-    # Classify samples as the index of their clusters
     def _get_cluster_labels(self, clusters, X):
+        """ Classify samples as the index of their clusters """
         # One prediction for each sample
         y_pred = np.zeros(np.shape(X)[0])
         for cluster_i, cluster in enumerate(clusters):
@@ -77,8 +68,9 @@ class KMeans():
                 y_pred[sample_i] = cluster_i
         return y_pred
 
-    # Do K-Means clustering and return cluster indices
     def predict(self, X):
+        """ Do K-Means clustering and return cluster indices """
+
         # Initialize centroids
         centroids = self._init_random_centroids(X)
 
@@ -89,7 +81,6 @@ class KMeans():
             prev_centroids = centroids
             # Calculate new centroids from the clusters
             centroids = self._calculate_centroids(clusters, X)
-
             # If no centroids have changed => convergence
             diff = centroids - prev_centroids
             if not diff.any():
@@ -97,20 +88,3 @@ class KMeans():
 
         return self._get_cluster_labels(clusters, X)
 
-
-def main():
-    # Load the dataset
-    X, y = datasets.make_blobs()
-
-    # Cluster the data using K-Means
-    clf = KMeans(k=3)
-    y_pred = clf.predict(X)
-
-    # Project the data onto the 2 primary principal components
-    pca = PCA()
-    pca.plot_in_2d(X, y_pred, title="K-Means Clustering")
-    pca.plot_in_2d(X, y, title="Actual Clustering")
-
-
-if __name__ == "__main__":
-    main()

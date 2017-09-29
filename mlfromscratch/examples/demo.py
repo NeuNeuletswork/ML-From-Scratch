@@ -1,20 +1,18 @@
 from __future__ import print_function
-import sys, os
 from sklearn import datasets
 import numpy as np
-import pandas as pd
+import math
 import matplotlib.pyplot as plt
 
-# Import helper functions
-from mlfromscratch.utils.data_manipulation import train_test_split, normalize
-from mlfromscratch.utils.data_operation import accuracy_score
-from mlfromscratch.utils.optimizers import GradientDescent_
-from mlfromscratch.utils.activation_functions import Softmax
+from mlfromscratch.utils import train_test_split, normalize, to_categorical, accuracy_score
+from mlfromscratch.deep_learning.optimizers import Adam
+from mlfromscratch.deep_learning.loss_functions import CrossEntropy
+from mlfromscratch.deep_learning.activation_functions import Softmax
 from mlfromscratch.utils.kernels import *
-# Import ML models
 from mlfromscratch.supervised_learning import *
-# Import PCA
+from mlfromscratch.deep_learning import *
 from mlfromscratch.unsupervised_learning import PCA
+from mlfromscratch.deep_learning.layers import Dense, Dropout, Conv2D, Flatten, Activation
 
 
 print ("+-------------------------------------------+")
@@ -63,10 +61,14 @@ adaboost = Adaboost(n_clf = 8)
 naive_bayes = NaiveBayes()
 knn = KNN(k=4)
 logistic_regression = LogisticRegression()
-mlp = MultilayerPerceptron(n_iterations=2000, optimizer=GradientDescent_(0.001, 0.4), batch_size=50)
-mlp.add(DenseLayer(n_inputs=n_features, n_units=64))
-mlp.add(DenseLayer(n_inputs=64, n_units=64))
-mlp.add(DenseLayer(n_inputs=64, n_units=2, activation_function=Softmax))   
+mlp = NeuralNetwork(optimizer=Adam(), 
+                    loss=CrossEntropy)
+mlp.add(Dense(input_shape=(n_features,), n_units=64))
+mlp.add(Activation('relu'))
+mlp.add(Dense(n_units=64))
+mlp.add(Activation('relu'))
+mlp.add(Dense(n_units=2))   
+mlp.add(Activation('softmax'))
 perceptron = Perceptron()
 decision_tree = ClassificationTree()
 random_forest = RandomForest(n_estimators=50)
@@ -90,11 +92,11 @@ lda.fit(X_train, y_train)
 print ("- Logistic Regression")
 logistic_regression.fit(X_train, y_train)
 print ("- Multilayer Perceptron")
-mlp.fit(X_train, y_train)
+mlp.fit(X_train, to_categorical(y_train), n_epochs=300, batch_size=50)
 print ("- Naive Bayes")
 naive_bayes.fit(X_train, y_train)
 print ("- Perceptron")
-perceptron.fit(X_train, y_train)
+perceptron.fit(X_train, to_categorical(y_train))
 print ("- Random Forest")
 random_forest.fit(X_train, y_train)
 print ("- Support Vector Machine")
@@ -114,8 +116,8 @@ y_pred["Naive Bayes"] = naive_bayes.predict(X_test)
 y_pred["K Nearest Neighbors"] = knn.predict(X_test, X_train, y_train)
 y_pred["Logistic Regression"] = logistic_regression.predict(X_test)
 y_pred["LDA"] = lda.predict(X_test)
-y_pred["Multilayer Perceptron"] = mlp.predict(X_test)
-y_pred["Perceptron"] = perceptron.predict(X_test)
+y_pred["Multilayer Perceptron"] = np.argmax(mlp.predict(X_test), axis=1)
+y_pred["Perceptron"] = np.argmax(perceptron.predict(X_test), axis=1)
 y_pred["Decision Tree"] = decision_tree.predict(X_test)
 y_pred["Random Forest"] = random_forest.predict(X_test)
 y_pred["Support Vector Machine"] = support_vector_machine.predict(X_test)
@@ -124,13 +126,14 @@ y_pred["XGBoost"] = xgboost.predict(X_test)
 # ..........
 #  ACCURACY
 # ..........
-
 print ("Accuracy:")
 for clf in y_pred:
-	if clf == "Adaboost" or clf == "Support Vector Machine":
-		print ("\t%-23s: %.5f" %(clf, accuracy_score(rescaled_y_test, y_pred[clf])))
-	else:
-		print ("\t%-23s: %.5f" %(clf, accuracy_score(y_test, y_pred[clf])))
+    # Rescaled {-1 1}
+    if clf == "Adaboost" or clf == "Support Vector Machine":
+        print ("\t%-23s: %.5f" %(clf, accuracy_score(rescaled_y_test, y_pred[clf])))
+    # Categorical
+    else:
+        print ("\t%-23s: %.5f" %(clf, accuracy_score(y_test, y_pred[clf])))
 
 # .......
 #  PLOT

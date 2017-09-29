@@ -1,16 +1,7 @@
-from __future__ import print_function
-import sys
-import os
-import scipy
-from sklearn import datasets
-from sklearn.preprocessing import StandardScaler
-from mpl_toolkits.mplot3d import Axes3D
+from __future__ import print_function, division
 import matplotlib.pyplot as plt
 import numpy as np
-
-# Import helper functions
-from mlfromscratch.utils.data_operation import calculate_covariance_matrix
-from mlfromscratch.utils.data_manipulation import normalize, standardize
+from mlfromscratch.utils import calculate_covariance_matrix, normalize, standardize
 
 
 class MultiClassLDA():
@@ -34,6 +25,7 @@ class MultiClassLDA():
 
         # Within class scatter matrix:
         # SW = sum{ (X_for_class - mean_of_X_for_class)^2 }
+        #   <=> (n_samples_X_for_class - 1) * covar(X_for_class)
         SW = np.empty((n_features, n_features))
         for label in labels:
             _X = X[y == label]
@@ -80,26 +72,14 @@ class MultiClassLDA():
 
         return X_transformed
 
-    # Plot the dataset X and the corresponding labels y in 2D using the LDA
-    # transformation.
+
     def plot_in_2d(self, X, y, title=None):
+        """ Plot the dataset X and the corresponding labels y in 2D using the LDA
+        transformation."""
         X_transformed = self.transform(X, y, n_components=2)
         x1 = X_transformed[:, 0]
         x2 = X_transformed[:, 1]
         plt.scatter(x1, x2, c=y)
-        if titel: plt.titel(title)
+        if title: plt.title(title)
         plt.show()
 
-
-def main():
-    # Load the dataset
-    data = datasets.load_iris()
-    X = normalize(data.data)
-    y = data.target
-
-    # Project the data onto the 2 primary components
-    multi_class_lda = MultiClassLDA()
-    multi_class_lda.plot_in_2d(X, y, title="LDA")
-
-if __name__ == "__main__":
-    main()

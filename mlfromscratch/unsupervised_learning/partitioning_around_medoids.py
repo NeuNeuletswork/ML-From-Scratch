@@ -1,13 +1,6 @@
-import sys
-import os
-import math
-import random
-from sklearn import datasets
+from __future__ import print_function, division
 import numpy as np
-
-# Import helper functions
-from mlfromscratch.utils.data_manipulation import normalize
-from mlfromscratch.utils.data_operation import euclidean_distance
+from mlfromscratch.utils import normalize, euclidean_distance, Plot
 from mlfromscratch.unsupervised_learning import PCA
 
 
@@ -26,8 +19,8 @@ class PAM():
     def __init__(self, k=2):
         self.k = k
 
-    # Initialize the medoids as random samples
     def _init_random_medoids(self, X):
+        """ Initialize the medoids as random samples """
         n_samples, n_features = np.shape(X)
         medoids = np.zeros((self.k, n_features))
         for i in range(self.k):
@@ -35,8 +28,8 @@ class PAM():
             medoids[i] = medoid
         return medoids
 
-    # Return the index of the closest medoid to the sample
     def _closest_medoid(self, sample, medoids):
+        """ Return the index of the closest medoid to the sample """
         closest_i = None
         closest_distance = float("inf")
         for i, medoid in enumerate(medoids):
@@ -46,16 +39,16 @@ class PAM():
                 closest_distance = distance
         return closest_i
 
-    # Assign the samples to the closest medoids to create clusters
     def _create_clusters(self, X, medoids):
+        """ Assign the samples to the closest medoids to create clusters """
         clusters = [[] for _ in range(self.k)]
         for sample_i, sample in enumerate(X):
             medoid_i = self._closest_medoid(sample, medoids)
             clusters[medoid_i].append(sample_i)
         return clusters
 
-    # Calculate the cost (total distance between samples and their medoids)
     def _calculate_cost(self, X, clusters, medoids):
+        """ Calculate the cost (total distance between samples and their medoids) """
         cost = 0
         # For each cluster
         for i, cluster in enumerate(clusters):
@@ -65,16 +58,16 @@ class PAM():
                 cost += euclidean_distance(X[sample_i], medoid)
         return cost
 
-    # Returns a list of all samples that are not currently medoids
     def _get_non_medoids(self, X, medoids):
+        """ Returns a list of all samples that are not currently medoids """
         non_medoids = []
         for sample in X:
             if not sample in medoids:
                 non_medoids.append(sample)
         return non_medoids
 
-    # Classify samples as the index of their clusters
     def _get_cluster_labels(self, clusters, X):
+        """ Classify samples as the index of their clusters """
         # One prediction for each sample
         y_pred = np.zeros(np.shape(X)[0])
         for cluster_i in range(len(clusters)):
@@ -83,8 +76,8 @@ class PAM():
                 y_pred[sample_i] = cluster_i
         return y_pred
 
-    # Do Partitioning Around Medoids and return the cluster labels
     def predict(self, X):
+        """ Do Partitioning Around Medoids and return the cluster labels """
         # Initialize medoids randomly
         medoids = self._init_random_medoids(X)
         # Assign samples to closest medoids
@@ -128,20 +121,3 @@ class PAM():
         # Return the samples cluster indices as labels
         return self._get_cluster_labels(final_clusters, X)
 
-
-def main():
-    # Load the dataset
-    X, y = datasets.make_blobs()
-
-    # Cluster the data using K-Medoids
-    clf = PAM(k=3)
-    y_pred = clf.predict(X)
-
-    # Project the data onto the 2 primary principal components
-    pca = PCA()
-    pca.plot_in_2d(X, y_pred, title="PAM Clustering")
-    pca.plot_in_2d(X, y, title="Actual Clustering")
-
-
-if __name__ == "__main__":
-    main()

@@ -1,25 +1,15 @@
 from __future__ import division, print_function
 import numpy as np
-from sklearn import datasets
-import sys
-import os
-import matplotlib.pyplot as plt
-from scipy.optimize import line_search
 import progressbar
 
 # Import helper functions
-from mlfromscratch.utils.data_manipulation import train_test_split, standardize, categorical_to_binary
-from mlfromscratch.utils.data_operation import mean_squared_error, accuracy_score
-from mlfromscratch.utils.loss_functions import SquareLoss, LogisticLoss
+from mlfromscratch.utils import train_test_split, standardize, to_categorical
+from mlfromscratch.utils import mean_squared_error, accuracy_score
+from mlfromscratch.deep_learning.loss_functions import SquareLoss, CrossEntropy
 from mlfromscratch.supervised_learning.decision_tree import RegressionTree
-from mlfromscratch.unsupervised_learning import PCA
+from mlfromscratch.utils.misc import bar_widgets
 
-bar_widgets = [
-    'Training: ', progressbar.Percentage(), ' ', progressbar.Bar(marker="-", left="[", right="]"),
-    ' ', progressbar.ETA()
-]
 
-# Super class to GradientBoostingRegressor and GradientBoostingClassifier
 class GradientBoosting(object):
     """Super class of GradientBoostingClassifier and GradientBoostinRegressor. 
     Uses a collection of regression trees that trains on predicting the gradient
@@ -40,27 +30,22 @@ class GradientBoosting(object):
         The maximum depth of a tree.
     regression: boolean
         True or false depending on if we're doing regression or classification.
-    debug: boolean
-        True or false depending on if we wish to display the training progress.
     """
     def __init__(self, n_estimators, learning_rate, min_samples_split,
-                 min_impurity, max_depth, regression, debug):
+                 min_impurity, max_depth, regression):
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.min_samples_split = min_samples_split
         self.min_impurity = min_impurity
         self.max_depth = max_depth
-        self.init_estimate = None
         self.regression = regression
-        self.debug = debug
-        self.multipliers = []
         self.bar = progressbar.ProgressBar(widgets=bar_widgets)
         
         # Square loss for regression
         # Log loss for classification
-        self.loss = SquareLoss(grad_wrt_theta=False)
+        self.loss = SquareLoss()
         if not self.regression:
-            self.loss = LogisticLoss(grad_wrt_theta=False)
+            self.loss = CrossEntropy()
 
         # Initialize regression trees
         self.trees = []
@@ -90,7 +75,6 @@ class GradientBoosting(object):
         for i, tree in enumerate(self.trees):
             update = tree.predict(X)
             update = np.multiply(self.learning_rate, update)
-            # prediction = np.array(prediction).reshape(np.shape(y_pred))
             y_pred = -update if not y_pred.any() else y_pred - update
 
         if not self.regression:
@@ -109,8 +93,7 @@ class GradientBoostingRegressor(GradientBoosting):
             min_samples_split=min_samples_split, 
             min_impurity=min_var_red,
             max_depth=max_depth,
-            regression=True,
-            debug=debug)
+            regression=True)
 
 class GradientBoostingClassifier(GradientBoosting):
     def __init__(self, n_estimators=200, learning_rate=.5, min_samples_split=2,
@@ -120,58 +103,9 @@ class GradientBoostingClassifier(GradientBoosting):
             min_samples_split=min_samples_split, 
             min_impurity=min_info_gain,
             max_depth=max_depth,
-            regression=False,
-            debug=debug)
+            regression=False)
 
     def fit(self, X, y):
-        y = categorical_to_binary(y)
+        y = to_categorical(y)
         super(GradientBoostingClassifier, self).fit(X, y)
 
-
-def main():
-
-    print ("-- Gradient Boosting Classification --")
-
-    data = datasets.load_iris()
-    X = data.data
-    y = data.target
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
-
-    clf = GradientBoostingClassifier(debug=True)
-    clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-
-    accuracy = accuracy_score(y_test, y_pred)
-
-    print ("Accuracy:", accuracy)
-
-    pca = PCA()
-    pca.plot_in_2d(X_test, y_pred, 
-        title="Gradient Boosting", 
-        accuracy=accuracy, 
-        legend_labels=data.target_names)
-
-    print ("-- Gradient Boosting Regression --")
-
-    X, y = datasets.make_regression(n_features=1, n_samples=150, bias=0, noise=5)
-
-    X_train, X_test, y_train, y_test = train_test_split(standardize(X), y, test_size=0.5)
-
-    clf = GradientBoostingRegressor(debug=True)
-    clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-
-    mse = mean_squared_error(y_test, y_pred)
-
-    print ("Mean Squared Error:", mse)
-
-    # Plot the results
-    plt.scatter(X_test[:, 0], y_test, color='black')
-    plt.scatter(X_test[:, 0], y_pred, color='green')
-    plt.title("Gradient Boosting Regression (%.2f MSE)" % mse)
-    plt.show()
-
-
-if __name__ == "__main__":
-    main()

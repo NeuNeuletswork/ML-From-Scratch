@@ -1,14 +1,6 @@
-import sys
-import os
-import math
-import random
-from sklearn import datasets
+from __future__ import print_function, division
 import numpy as np
-
-# Import helper functions
-from mlfromscratch.utils.data_manipulation import normalize
-from mlfromscratch.utils.data_operation import euclidean_distance
-from mlfromscratch.unsupervised_learning import PCA
+from mlfromscratch.utils import Plot, euclidean_distance, normalize
 
 
 class DBSCAN():
@@ -33,10 +25,11 @@ class DBSCAN():
         self.neighbors = {}
         self.X = None   # Dataset
 
-    # Return a list of neighboring samples
-    # A sample_2 is considered a neighbor of sample_1 if the distance between
-    # them is smaller than epsilon
+
     def _get_neighbors(self, sample_i):
+        """ Return a list of indexes of neighboring samples
+        A sample_2 is considered a neighbor of sample_1 if the distance between
+        them is smaller than epsilon """
         neighbors = []
         for _sample_i, _sample in enumerate(self.X):
             if _sample_i != sample_i and euclidean_distance(
@@ -44,9 +37,10 @@ class DBSCAN():
                 neighbors.append(_sample_i)
         return np.array(neighbors)
 
-    # Recursive method which expands the cluster until we have reached the border
-    # of the dense area (density determined by eps and min_samples)
+
     def _expand_cluster(self, sample_i, neighbors):
+        """ Recursive method which expands the cluster until we have reached the border
+        of the dense area (density determined by eps and min_samples) """
         cluster = [sample_i]
         # Iterate through neighbors
         for neighbor_i in neighbors:
@@ -56,12 +50,6 @@ class DBSCAN():
                 self.neighbors[neighbor_i] = self._get_neighbors(neighbor_i)
                 # Make sure the neighbors neighbors are more than min_samples
                 if len(self.neighbors[neighbor_i]) >= self.min_samples:
-                    # Choose neighbors of neighbor except for sample
-                    distant_neighbors = self.neighbors[neighbor_i][
-                        np.where(self.neighbors[neighbor_i] != sample_i)]
-                    # Add the neighbors neighbors as neighbors of sample
-                    self.neighbors[sample_i] = np.concatenate(
-                        (self.neighbors[sample_i], distant_neighbors))
                     # Expand the cluster from the neighbor
                     expanded_cluster = self._expand_cluster(
                         neighbor_i, self.neighbors[neighbor_i])
@@ -71,9 +59,10 @@ class DBSCAN():
                 cluster.append(neighbor_i)
         return cluster
 
-    # Return the samples labels as the index of the cluster in which they are
-    # contained
+
     def _get_cluster_labels(self):
+        """ Return the samples labels as the index of the cluster in which they are
+        contained """
         # Set default value to number of clusters
         # Will make sure all outliers have same cluster label
         labels = len(self.clusters) * np.ones(np.shape(self.X)[0])
@@ -105,20 +94,3 @@ class DBSCAN():
         # Get the resulting cluster labels
         cluster_labels = self._get_cluster_labels()
         return cluster_labels
-
-
-def main():
-    # Load the dataset
-    X, y = datasets.make_moons(n_samples=300, noise=0.1)
-
-    # Cluster the data using DBSCAN
-    clf = DBSCAN(eps=0.17, min_samples=5)
-    y_pred = clf.predict(X)
-
-    # Project the data onto the 2 primary principal components
-    pca = PCA()
-    pca.plot_in_2d(X, y_pred, title="DBSCAN")
-    pca.plot_in_2d(X, y, title="Actual Clustering")
-
-if __name__ == "__main__":
-    main()
